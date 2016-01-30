@@ -8,21 +8,36 @@
 
 import UIKit
 
-class BusinessesViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
+class BusinessesViewController: UIViewController, UITableViewDataSource, UITableViewDelegate, UISearchBarDelegate, UIScrollViewDelegate {
 
     var businesses: [Business]!
-    
     @IBOutlet weak var tableView: UITableView!
+    let searchBar = UISearchBar()
+    var isMoreDataLoading = false
     
+    var filteredData: [Business]!
+    
+    //viewDidLoad
     override func viewDidLoad() {
         super.viewDidLoad()
-
+        
         tableView.delegate = self
         tableView.dataSource = self
         tableView.rowHeight = UITableViewAutomaticDimension
         tableView.estimatedRowHeight = 120
         
+        searchBar.delegate = self
+        searchBar.sizeToFit()
+        navigationItem.titleView = searchBar
+ 
+        fetchThaiFood()
+
+
         
+
+    }
+    
+    func fetchThaiFood() {
         Business.searchWithTerm("Thai", completion: { (businesses: [Business]!, error: NSError!) -> Void in
             self.businesses = businesses
             self.tableView.reloadData()
@@ -32,24 +47,49 @@ class BusinessesViewController: UIViewController, UITableViewDataSource, UITable
                 print(business.address!)
             }
         })
-
-/* Example of Yelp search with more search options specified
+        
+        
+        /*
+        // Example of Yelp search with more search options specified
         Business.searchWithTerm("Restaurants", sort: .Distance, categories: ["asianfusion", "burgers"], deals: true) { (businesses: [Business]!, error: NSError!) -> Void in
-            self.businesses = businesses
+        self.businesses = businesses
+        self.tableView.reloadData()
+        
+        for business in businesses {
+        print(business.name!)
+        print(business.address!)
+        }
+        }
+        */
+        
+    }
+    
+    
+    //infinite scroll function  - Unfinished
+    func scrollViewDidScroll(scrollView: UIScrollView) {
+        if (!isMoreDataLoading) {
+            // Calculate the position of one screen length before the bottom of the results
+            let scrollViewContentHeight = tableView.contentSize.height
+            let scrollOffsetThreshold = scrollViewContentHeight - tableView.bounds.size.height
             
-            for business in businesses {
-                print(business.name!)
-                print(business.address!)
+            // When the user has scrolled past the threshold, start requesting
+            if(scrollView.contentOffset.y > scrollOffsetThreshold && tableView.dragging) {
+                isMoreDataLoading = true
+                
+                // ... Code to load more results ...
+                //this is not the approriate to do it. warning...
+                fetchThaiFood()
+                
+                
             }
         }
-*/
     }
-
+    
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
     }
-
+    
     func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         if businesses != nil {
             return businesses!.count
@@ -64,9 +104,7 @@ class BusinessesViewController: UIViewController, UITableViewDataSource, UITable
         cell.business = businesses[indexPath.row]
         
         return cell
-        
     }
-    
     
     
     
