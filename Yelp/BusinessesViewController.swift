@@ -8,14 +8,16 @@
 
 import UIKit
 
-class BusinessesViewController: UIViewController, UITableViewDataSource, UITableViewDelegate, UISearchBarDelegate, UIScrollViewDelegate {
+class BusinessesViewController: UIViewController, UITableViewDataSource, UITableViewDelegate, UIScrollViewDelegate, UISearchResultsUpdating {
 
     var businesses: [Business]!
-    @IBOutlet weak var tableView: UITableView!
-    let searchBar = UISearchBar()
-    var isMoreDataLoading = false
+    var businessesBackUp: [Business]?
     
-    var filteredData: [Business]!
+    @IBOutlet weak var tableView: UITableView!
+    var isMoreDataLoading = false
+    var searchController: UISearchController!
+    
+    var searchKey: String!
     
     //viewDidLoad
     override func viewDidLoad() {
@@ -26,19 +28,20 @@ class BusinessesViewController: UIViewController, UITableViewDataSource, UITable
         tableView.rowHeight = UITableViewAutomaticDimension
         tableView.estimatedRowHeight = 120
         
-        searchBar.delegate = self
-        searchBar.sizeToFit()
-        navigationItem.titleView = searchBar
- 
-        fetchThaiFood()
-
-
+        // set up for search bar
+        searchController = UISearchController(searchResultsController: nil)
+        searchController.searchResultsUpdater = self
+        searchController.searchBar.sizeToFit()
         
-
+        navigationItem.titleView = searchController.searchBar
+        searchController.hidesNavigationBarDuringPresentation = false
+        definesPresentationContext = true
+ 
+        fetchFoodData()
     }
     
-    func fetchThaiFood() {
-        Business.searchWithTerm("Thai", completion: { (businesses: [Business]!, error: NSError!) -> Void in
+    func fetchFoodData() {
+        Business.searchWithTerm("Mexican", completion: { (businesses: [Business]!, error: NSError!) -> Void in
             self.businesses = businesses
             self.tableView.reloadData()
             
@@ -65,25 +68,24 @@ class BusinessesViewController: UIViewController, UITableViewDataSource, UITable
     }
     
     
-    //infinite scroll function  - Unfinished
-    func scrollViewDidScroll(scrollView: UIScrollView) {
-        if (!isMoreDataLoading) {
-            // Calculate the position of one screen length before the bottom of the results
-            let scrollViewContentHeight = tableView.contentSize.height
-            let scrollOffsetThreshold = scrollViewContentHeight - tableView.bounds.size.height
-            
-            // When the user has scrolled past the threshold, start requesting
-            if(scrollView.contentOffset.y > scrollOffsetThreshold && tableView.dragging) {
-                isMoreDataLoading = true
-                
-                // ... Code to load more results ...
-                //this is not the approriate to do it. warning...
-                fetchThaiFood()
-                
-                
-            }
-        }
-    }
+//    //infinite scroll function  - Unfinished
+//    func scrollViewDidScroll(scrollView: UIScrollView) {
+//        if (!isMoreDataLoading) {
+//            // Calculate the position of one screen length before the bottom of the results
+//            let scrollViewContentHeight = tableView.contentSize.height
+//            let scrollOffsetThreshold = scrollViewContentHeight - tableView.bounds.size.height
+//            
+//            // When the user has scrolled past the threshold, start requesting
+//            if(scrollView.contentOffset.y > scrollOffsetThreshold && tableView.dragging) {
+//                isMoreDataLoading = true
+//                
+//                // ... Code to load more results ...
+//                //this is not the approriate to do it. warning...
+//                fetchFoodData()
+//
+//            }
+//        }
+//    }
     
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
@@ -106,7 +108,23 @@ class BusinessesViewController: UIViewController, UITableViewDataSource, UITable
         return cell
     }
     
-    
+    func updateSearchResultsForSearchController(searchController: UISearchController) {
+        if businessesBackUp == nil {
+            businessesBackUp = businesses
+        }
+        if let searchText = searchController.searchBar.text {
+            if(searchText == "") {
+                businesses = businessesBackUp
+                tableView.reloadData()
+            } else {
+                businesses = searchText.isEmpty ? businesses : businesses?.filter({ (business:Business) -> Bool in
+                    business.name!.rangeOfString(searchText, options: .CaseInsensitiveSearch) != nil
+                });
+                tableView.reloadData()
+            }
+        }
+    }
+
     
     /*
     // MARK: - Navigation
